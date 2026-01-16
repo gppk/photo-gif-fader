@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GPPK Progress GIF Maker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:#0d0c0a;
+      --bg-2:#171512;
+      --card:#1b1814;
+      --card-2:#242019;
+      --text:#f6f1e8;
+      --muted:#b5a88e;
+      --accent:#c7903a;
+      --accent-2:#e0b25e;
+      --line:rgba(224,178,94,0.25);
+      --glow:rgba(199,144,58,0.24);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0;
+      font-family:"Space Grotesk", ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 700px at 20% -10%, rgba(199,144,58,0.25) 0%, rgba(13,12,10,0) 60%),
+        radial-gradient(1200px 700px at 80% 10%, rgba(60,48,28,0.55) 0%, rgba(13,12,10,0) 65%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 55%, #000 100%);
+      background-repeat: no-repeat;
+      background-color: #000;
+      color: var(--text);
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { margin:0 0 6px; font-size: 26px; letter-spacing:0.4px; }
+    p { margin:0 0 18px; color: var(--muted); line-height:1.45; }
+
+    .grid { display:grid; gap:16px; grid-template-columns: 1.1fr 0.9fr; align-items:start; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: linear-gradient(160deg, var(--card) 0%, var(--card-2) 100%);
+      border:1px solid var(--line);
+      border-radius:14px; padding:16px;
+      box-shadow: 0 14px 36px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,0,0,0.4);
+    }
+
+    label { display:block; font-size:12px; color: var(--muted); margin-bottom: 8px; }
+    input[type="file"] { width:100%; padding:10px; background: rgba(255,255,255,0.04);
+      border: 1px dashed var(--line); border-radius:12px; color: var(--text); }
+
+    .controls { margin-top:14px; display:grid; gap:10px; }
+    .ctrl { display:grid; grid-template-columns: 160px 1fr 80px; gap:10px; align-items:center; }
+    .ctrl span { font-size:12px; color: var(--muted); }
+    input[type="range"], input[type="number"] { width:100%; }
+
+    .btns { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+    button {
+      appearance:none; border:1px solid var(--line);
+      background: rgba(255,255,255,0.04); color: var(--text);
+      padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:700;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    button.primary {
+      border-color: rgba(224,178,94,0.7);
+      background: linear-gradient(180deg, rgba(224,178,94,0.18) 0%, rgba(199,144,58,0.18) 100%);
+      box-shadow: 0 10px 22px var(--glow);
+    }
+    button:hover { transform: translateY(-1px); border-color: rgba(224,178,94,0.6); }
+    button:disabled { opacity:0.55; cursor:not-allowed; }
+
+    .status { margin-top:10px; font-size:12px; color: var(--muted); min-height:18px; }
+
+    .list { margin-top: 14px; display:grid; gap:10px; }
+    .item {
+      display:grid;
+      grid-template-columns: 92px 1fr auto;
+      gap:12px;
+      align-items:center;
+      padding:10px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      border-radius: 14px;
+    }
+    .thumb {
+      width: 92px; height: 62px; border-radius: 10px;
+      border:1px solid var(--line);
+      object-fit: cover; background: rgba(0,0,0,0.25);
+    }
+    .meta { display:flex; flex-direction:column; gap:4px; min-width: 0; }
+    .name { font-size: 13px; font-weight: 700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sub { font-size: 12px; color: var(--muted); }
+
+    .item[draggable="true"] { cursor: grab; }
+    .item.dragging { opacity: 0.55; }
+
+    .item .actions { display:flex; gap:8px; }
+    .smallbtn { padding:8px 10px; font-size:12px; font-weight:700; border-radius:10px; }
+
+    canvas, img.out {
+      width:100%;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,0.25);
+    }
+    .hint { margin-top:10px; font-size:12px; color: var(--muted); line-height:1.45; }
+    .pill {
+      display:inline-block; padding:2px 8px; border-radius:999px;
+      border:1px solid var(--line); background: rgba(255,255,255,0.05);
+    }
+    .outwrap { display:none; margin-top:10px; }
+
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:14px;
+      margin-bottom:14px;
+    }
+    .brand img {
+      width:68px;
+      height:auto;
+      filter: drop-shadow(0 8px 20px rgba(0,0,0,0.5));
+    }
+    .brand-title {
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .brand-title strong {
+      font-family:"Chakra Petch", "Space Grotesk", sans-serif;
+      font-size:18px;
+      letter-spacing:1.2px;
+      text-transform:uppercase;
+      color: var(--accent-2);
+    }
+    .brand-title span {
+      font-size:12px;
+      color: var(--muted);
+    }
+    .title-row {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .title-row h1 {
+      font-family:"Chakra Petch", "Space Grotesk", sans-serif;
+      text-transform:uppercase;
+    }
+    .title-tag {
+      font-size:11px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255,255,255,0.03);
+    }
+    .card, .list, .item, .btns, .controls, canvas, img.out {
+      animation: rise 0.6s ease both;
+    }
+    @keyframes rise {
+      from { opacity:0; transform: translateY(8px); }
+      to { opacity:1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <img src="assets/gppk-logo.png" alt="GPPK logo" />
+      <div class="brand-title">
+      </div>
+    </div>
+    <div class="title-row">
+      <h1>Progress GIF Maker</h1>
+      
+    </div>
+    <p>Upload multiple images, reorder them, and export a GIF. Everything is generated in the browser; the server only needs to host this page.</p>
+
+    <div class="grid">
+      <div class="card">
+        <label for="files">Upload images (multiple)</label>
+        <input id="files" type="file" accept="image/*" multiple />
+
+        <div class="controls">
+          <div class="ctrl">
+            <span>Output width</span>
+            <input id="outWidth" type="range" min="240" max="1400" step="10" value="720" />
+            <span id="outWidthVal">720px</span>
+          </div>
+
+          <div class="ctrl">
+            <span>Frame delay</span>
+            <input id="delay" type="range" min="50" max="2000" step="50" value="400" />
+            <span id="delayVal">400ms</span>
+          </div>
+
+          <div class="ctrl">
+            <span>Loop count</span>
+            <input id="loop" type="number" min="0" max="100" step="1" value="0" />
+            <span class="pill">0 = infinite</span>
+          </div>
+
+          <div class="ctrl">
+            <span>Hold first/last</span>
+            <input id="hold" type="range" min="0" max="3000" step="100" value="800" />
+            <span id="holdVal">800ms</span>
+          </div>
+
+          <div class="ctrl">
+            <span>Crossfade steps</span>
+            <input id="fadeSteps" type="range" min="0" max="30" step="1" value="8" />
+            <span id="fadeStepsVal">8</span>
+          </div>
+
+          <div class="ctrl">
+            <span>Fade step delay</span>
+            <input id="fadeDelay" type="range" min="20" max="500" step="10" value="40" />
+            <span id="fadeDelayVal">40ms</span>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button id="generateBtn" class="primary" disabled>Generate GIF</button>
+          <button id="previewBtn" class="primary" disabled>Preview</button>
+          <button id="clearBtn">Clear</button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="hint">
+          Reorder by dragging items. Output uses a “cover crop” so different aspect ratios still fill the frame.
+          If generation is slow or the GIF is huge, reduce output width or crossfade steps.
+        </div>
+
+        <div class="list" id="list"></div>
+      </div>
+
+      <div class="card">
+        <label>Preview</label>
+        <canvas id="canvas" width="720" height="480"></canvas>
+
+        <div class="outwrap" id="outWrap">
+          <label style="margin-top:12px;">Generated GIF</label>
+          <img class="out" id="gifOut" alt="Generated GIF" />
+          <div class="hint" id="gifMeta"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GIF encoder + worker and drag-sort helper -->
+  <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const filesInput = $("files");
+    const listEl = $("list");
+    const canvas = $("canvas");
+    const ctx = canvas.getContext("2d", { alpha: true, willReadFrequently: true });
+
+    const outWidth = $("outWidth");
+    const delay = $("delay");
+    const loop = $("loop");
+    const hold = $("hold");
+    const fadeSteps = $("fadeSteps");
+    const fadeDelay = $("fadeDelay");
+
+    const outWidthVal = $("outWidthVal");
+    const delayVal = $("delayVal");
+    const holdVal = $("holdVal");
+    const fadeStepsVal = $("fadeStepsVal");
+    const fadeDelayVal = $("fadeDelayVal");
+
+    const generateBtn = $("generateBtn");
+    const previewBtn = $("previewBtn");
+    const clearBtn = $("clearBtn");
+    const statusEl = $("status");
+
+    const outWrap = $("outWrap");
+    const gifOut = $("gifOut");
+    const gifMeta = $("gifMeta");
+
+    /** @type {{id:string, file:File, img:HTMLImageElement, url:string}[]} */
+    let items = [];
+
+    function setStatus(msg) { statusEl.textContent = msg || ""; }
+    function clamp01(x){ return Math.min(1, Math.max(0, x)); }
+
+    function updateLabels() {
+      outWidthVal.textContent = `${outWidth.value}px`;
+      delayVal.textContent = `${delay.value}ms`;
+      holdVal.textContent = `${hold.value}ms`;
+      fadeStepsVal.textContent = `${fadeSteps.value}`;
+      fadeDelayVal.textContent = `${fadeDelay.value}ms`;
+    }
+
+    function canRun() { return items.length >= 2; }
+    function setButtons() {
+      generateBtn.disabled = !canRun();
+      previewBtn.disabled = !canRun();
+    }
+
+    function readImageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => resolve({ img, url });
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      // subtle checker
+      ctx.save();
+      ctx.globalAlpha = 0.08;
+      const s = 18;
+      for (let y=0; y<canvas.height; y+=s) {
+        for (let x=0; x<canvas.width; x+=s) {
+          if (((x/s)+(y/s))%2===0) ctx.fillRect(x,y,s,s);
+        }
+      }
+      ctx.restore();
+    }
+
+    // “cover” draw
+    function drawCover(image, alpha=1) {
+      const cw = canvas.width, ch = canvas.height;
+      const iw = image.naturalWidth, ih = image.naturalHeight;
+
+      const scale = Math.max(cw / iw, ch / ih);
+      const sw = cw / scale;
+      const sh = ch / scale;
+      const sx = (iw - sw) / 2;
+      const sy = (ih - sh) / 2;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(image, sx, sy, sw, sh, 0, 0, cw, ch);
+      ctx.restore();
+    }
+
+    function setCanvasFromOutputWidth() {
+      const w = Number(outWidth.value);
+      // use first image aspect ratio as baseline; if none, default 4:3
+      let aspect = 3/4;
+      if (items[0]?.img) aspect = items[0].img.naturalHeight / items[0].img.naturalWidth;
+      const h = Math.max(180, Math.round(w * aspect));
+      canvas.width = w;
+      canvas.height = h;
+    }
+
+    function renderList() {
+      listEl.innerHTML = "";
+      for (const it of items) {
+        const row = document.createElement("div");
+        row.className = "item";
+        row.setAttribute("data-id", it.id);
+        row.draggable = true;
+
+        const thumb = document.createElement("img");
+        thumb.className = "thumb";
+        thumb.src = it.url;
+        thumb.alt = it.file.name;
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = it.file.name;
+        const sub = document.createElement("div");
+        sub.className = "sub";
+        sub.textContent = `${Math.round(it.img.naturalWidth)}×${Math.round(it.img.naturalHeight)} · ${Math.round(it.file.size/1024)} KB`;
+        meta.appendChild(name);
+        meta.appendChild(sub);
+
+        const actions = document.createElement("div");
+        actions.className = "actions";
+
+        const up = document.createElement("button");
+        up.className = "smallbtn";
+        up.textContent = "Up";
+        up.onclick = () => moveItem(it.id, -1);
+
+        const down = document.createElement("button");
+        down.className = "smallbtn";
+        down.textContent = "Down";
+        down.onclick = () => moveItem(it.id, +1);
+
+        const del = document.createElement("button");
+        del.className = "smallbtn";
+        del.textContent = "Remove";
+        del.onclick = () => removeItem(it.id);
+
+        actions.appendChild(up);
+        actions.appendChild(down);
+        actions.appendChild(del);
+
+        row.appendChild(thumb);
+        row.appendChild(meta);
+        row.appendChild(actions);
+        listEl.appendChild(row);
+      }
+    }
+
+    function moveItem(id, delta) {
+      const idx = items.findIndex(x => x.id === id);
+      if (idx < 0) return;
+      const ni = idx + delta;
+      if (ni < 0 || ni >= items.length) return;
+      const [sp] = items.splice(idx, 1);
+      items.splice(ni, 0, sp);
+      renderList();
+      setButtons();
+    }
+
+    function removeItem(id) {
+      const idx = items.findIndex(x => x.id === id);
+      if (idx < 0) return;
+      const [it] = items.splice(idx, 1);
+      try { URL.revokeObjectURL(it.url); } catch {}
+      renderList();
+      setButtons();
+      outWrap.style.display = "none";
+      clearCanvas();
+      if (items[0]?.img) drawCover(items[0].img, 1);
+    }
+
+    // keep items[] in sync after drag sort
+    function syncOrderFromDOM() {
+      const ids = [...listEl.querySelectorAll(".item")].map(el => el.getAttribute("data-id"));
+      const map = new Map(items.map(it => [it.id, it]));
+      items = ids.map(id => map.get(id)).filter(Boolean);
+    }
+
+    async function handleFilesSelected(fileList) {
+      setStatus("Loading images…");
+      outWrap.style.display = "none";
+      gifOut.src = "";
+
+      const files = [...fileList].filter(f => f.type.startsWith("image/"));
+      // load sequentially so we can show errors cleanly
+      for (const file of files) {
+        const id = crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2);
+        const { img, url } = await readImageFromFile(file);
+        items.push({ id, file, img, url });
+      }
+
+      setCanvasFromOutputWidth();
+      clearCanvas();
+      if (items[0]?.img) drawCover(items[0].img, 1);
+
+      renderList();
+      setButtons();
+      setStatus(items.length ? `Loaded ${items.length} image(s).` : "");
+    }
+
+    async function preview() {
+      if (!canRun()) return;
+      setStatus("Previewing…");
+      setCanvasFromOutputWidth();
+
+      const baseDelay = Number(delay.value);
+      const holdMs = Number(hold.value);
+      const steps = Number(fadeSteps.value);
+      const stepDelay = Number(fadeDelay.value);
+
+      const frames = [];
+
+      // Build a preview frame plan matching export
+      frames.push({ type:"still", idx:0, alpha:1, ms: holdMs });
+
+      for (let i=0; i<items.length-1; i++) {
+        frames.push({ type:"still", idx:i, alpha:1, ms: baseDelay });
+
+        if (steps > 0) {
+          for (let s=1; s<=steps; s++) {
+            const t = s/(steps+1);
+            frames.push({ type:"fade", from:i, to:i+1, t, ms: stepDelay });
+          }
+        }
+      }
+
+      frames.push({ type:"still", idx: items.length-1, alpha:1, ms: holdMs });
+
+      let k = 0;
+      const tick = () => {
+        const f = frames[k++];
+        if (!f) { setStatus(""); return; }
+
+        clearCanvas();
+        if (f.type === "still") {
+          drawCover(items[f.idx].img, 1);
+        } else {
+          drawCover(items[f.from].img, 1);
+          drawCover(items[f.to].img, f.t);
+        }
+
+        setTimeout(tick, f.ms);
+      };
+      tick();
+    }
+
+    function autoDownloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // revoke later; some browsers need a little time post-click
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      return url;
+    }
+
+    let workerScriptUrlPromise = null;
+    async function getWorkerScriptUrl() {
+      if (workerScriptUrlPromise) return workerScriptUrlPromise;
+      workerScriptUrlPromise = (async () => {
+        const src = "https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.worker.js";
+        try {
+          const res = await fetch(src);
+          if (!res.ok) throw new Error(`Worker fetch failed: ${res.status}`);
+          const text = await res.text();
+          const blob = new Blob([text], { type: "application/javascript" });
+          return URL.createObjectURL(blob);
+        } catch {
+          return src; // fallback; requires http(s) origin
+        }
+      })();
+      return workerScriptUrlPromise;
+    }
+
+    async function generateGif() {
+      if (!canRun()) return;
+
+      setStatus("Generating GIF…");
+      outWrap.style.display = "none";
+      gifOut.src = "";
+
+      setCanvasFromOutputWidth();
+      clearCanvas();
+
+      const baseDelay = Number(delay.value);
+      const holdMs = Number(hold.value);
+      const steps = Number(fadeSteps.value);
+      const stepDelay = Number(fadeDelay.value);
+      const loopCount = Math.max(0, Math.min(100, Number(loop.value || 0)));
+
+      const workerScript = await getWorkerScriptUrl();
+      const gif = new GIF({
+        workers: Math.min(4, navigator.hardwareConcurrency || 2),
+        quality: 10,
+        workerScript,
+        width: canvas.width,
+        height: canvas.height,
+        repeat: loopCount, // 0 infinite, 1 once, etc. (gif.js convention)
+      });
+
+      // first hold
+      clearCanvas();
+      drawCover(items[0].img, 1);
+      gif.addFrame(canvas, { copy:true, delay: holdMs });
+
+      for (let i=0; i<items.length-1; i++) {
+        // still on current image
+        clearCanvas();
+        drawCover(items[i].img, 1);
+        gif.addFrame(canvas, { copy:true, delay: baseDelay });
+
+        // fades between i -> i+1
+        if (steps > 0) {
+          for (let s=1; s<=steps; s++) {
+            const t = s/(steps+1);
+            clearCanvas();
+            drawCover(items[i].img, 1);
+            drawCover(items[i+1].img, t);
+            gif.addFrame(canvas, { copy:true, delay: stepDelay });
+          }
+        }
+      }
+
+      // last still + hold
+      clearCanvas();
+      drawCover(items[items.length-1].img, 1);
+      gif.addFrame(canvas, { copy:true, delay: baseDelay });
+      gif.addFrame(canvas, { copy:true, delay: holdMs });
+
+      gif.on("progress", p => setStatus(`Rendering… ${Math.round(p*100)}%`));
+      gif.on("abort", () => setStatus("Render aborted (worker failed). Serve over http(s), don’t open from file://"));
+      gif.on("finished", (blob) => {
+        const kb = Math.round(blob.size / 1024);
+        const url = URL.createObjectURL(blob);
+
+        // show preview
+        gifOut.src = url;
+        outWrap.style.display = "block";
+        gifMeta.textContent = `Size ~${kb} KB · ${canvas.width}×${canvas.height} · ${items.length} images · crossfade steps ${steps}`;
+
+        // auto-download
+        autoDownloadBlob(blob, "progress.gif");
+
+        setStatus("");
+      });
+
+      gif.render();
+    }
+
+    // Sortable (drag to reorder)
+    new Sortable(listEl, {
+      animation: 150,
+      onEnd: () => {
+        syncOrderFromDOM();
+        outWrap.style.display = "none";
+        clearCanvas();
+        if (items[0]?.img) drawCover(items[0].img, 1);
+      },
+    });
+
+    // Wire up inputs
+    filesInput.addEventListener("change", async () => {
+      if (!filesInput.files?.length) return;
+      await handleFilesSelected(filesInput.files);
+      filesInput.value = ""; // allow re-selecting same files later
+    });
+
+    [outWidth, delay, hold, fadeSteps, fadeDelay].forEach(el => {
+      el.addEventListener("input", () => {
+        updateLabels();
+        if (el === outWidth) {
+          setCanvasFromOutputWidth();
+          clearCanvas();
+          if (items[0]?.img) drawCover(items[0].img, 1);
+        }
+      });
+    });
+
+    previewBtn.addEventListener("click", preview);
+    generateBtn.addEventListener("click", generateGif);
+
+    clearBtn.addEventListener("click", () => {
+      for (const it of items) { try { URL.revokeObjectURL(it.url); } catch {} }
+      items = [];
+      listEl.innerHTML = "";
+      outWrap.style.display = "none";
+      gifOut.src = "";
+      setStatus("");
+      setButtons();
+      setCanvasFromOutputWidth();
+      clearCanvas();
+    });
+
+    // init
+    updateLabels();
+    setCanvasFromOutputWidth();
+    clearCanvas();
+    setButtons();
+  </script>
+</body>
+</html>
